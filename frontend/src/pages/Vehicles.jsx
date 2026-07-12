@@ -104,18 +104,50 @@ export default function Vehicles() {
     'Retired': 'bg-slate-100 text-slate-600 border-slate-200',
   };
 
+  const visibleCount = filteredVehicles.length;
+
   return (
     <div className="space-y-6 relative h-full">
+      <div className="absolute -top-10 right-10 w-64 h-64 rounded-full bg-primary/10 blur-3xl pointer-events-none"></div>
+      <div className="absolute top-32 left-0 w-72 h-72 rounded-full bg-amber-400/10 blur-3xl pointer-events-none"></div>
+
       {/* Page Header & Top Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Vehicle Management</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage and track your entire active fleet.</p>
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-blue-50/80 p-6 shadow-sm">
+        <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.16),transparent_65%)] pointer-events-none"></div>
+        <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">
+              Fleet Inventory
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">Vehicle Management</h1>
+              <p className="mt-2 max-w-2xl text-sm text-slate-600">Search, add, edit, and remove fleet assets while keeping the operational status of each vehicle visible at a glance.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:min-w-[520px]">
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total</p>
+              <p className="mt-1 text-2xl font-black text-slate-900">{vehicles.length}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Visible</p>
+              <p className="mt-1 text-2xl font-black text-slate-900">{visibleCount}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Available</p>
+              <p className="mt-1 text-2xl font-black text-green-600">{vehicles.filter((vehicle) => vehicle.status === 'Available').length}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">In Trip</p>
+              <p className="mt-1 text-2xl font-black text-blue-600">{vehicles.filter((vehicle) => vehicle.status === 'On Trip').length}</p>
+            </div>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-3 w-full md:w-auto">
+
+        <div className="mt-6 flex items-center gap-3 w-full flex-col md:flex-row md:justify-between">
           {/* SearchBar */}
-          <div className="relative w-full md:w-64">
+          <div className="relative w-full md:w-80">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-slate-400" />
             </div>
@@ -127,11 +159,12 @@ export default function Vehicles() {
               className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-sm bg-white"
             />
           </div>
-          
+
+          <div className="flex items-center gap-3 w-full md:w-auto md:justify-end">
           <button className="flex items-center justify-center p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors bg-white hover:text-primary">
              <Filter className="w-4 h-4" />
           </button>
-          
+
           <button 
             onClick={openAddModal}
             className="flex items-center gap-2 bg-primary hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all shadow-sm whitespace-nowrap"
@@ -139,6 +172,7 @@ export default function Vehicles() {
             <Plus className="w-4 h-4" /> Add Vehicle
           </button>
         </div>
+      </div>
       </div>
 
       {/* Main Table */}
@@ -167,7 +201,6 @@ export default function Vehicles() {
               )}
               {!isLoading && filteredVehicles.map((vehicle) => (
                 <tr key={vehicle.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4 font-semibold text-slate-700">{vehicle.registration_number}</td>
                   <td className="px-6 py-4 text-slate-600">{vehicle.model}</td>
                   <td className="px-6 py-4 text-slate-600">{vehicle.vehicle_type}</td>
                   <td className="px-6 py-4 text-slate-600">{vehicle.capacity}</td>

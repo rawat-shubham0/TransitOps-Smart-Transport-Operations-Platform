@@ -45,16 +45,24 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      
+    <div className="space-y-6 relative">
+      <div className="absolute -top-10 right-8 w-56 h-56 rounded-full bg-primary/10 blur-3xl pointer-events-none"></div>
+      <div className="absolute top-28 left-0 w-72 h-72 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none"></div>
+
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Operational Dashboard</h1>
-        <p className="text-slate-500">Welcome back! Here is what's happening today.</p>
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-blue-50/80 p-6 shadow-sm">
+        <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.16),transparent_65%)] pointer-events-none"></div>
+        <div className="relative flex flex-col gap-2">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">
+            Live Fleet Overview
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Operational Dashboard</h1>
+          <p className="max-w-2xl text-sm text-slate-600">A real-time snapshot of fleet health, utilization, trip activity, and operating cost indicators pulled directly from the backend.</p>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {[
           { title: "Total Vehicles", value: dashboardData.total_vehicles ?? "0", icon: Truck, color: "text-blue-600", bg: "bg-blue-50" },
           { title: "Available Vehicles", value: dashboardData.available_vehicles ?? "0", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
@@ -65,13 +73,14 @@ export default function Dashboard() {
         ].map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
-             <div key={idx} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+             <div key={idx} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-[0_12px_30px_-20px_rgba(15,23,42,0.45)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-1">
+                <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-10`} />
+                <div className={`w-12 h-12 rounded-2xl ${kpi.bg} flex items-center justify-center ring-1 ring-inset ring-white shadow-sm`}>
                   <Icon className={`w-6 h-6 ${kpi.color}`} />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-500">{kpi.title}</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{kpi.value}</h3>
+                <div className="mt-4">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{kpi.title}</p>
+                  <h3 className="mt-1 text-3xl font-black tracking-tight text-slate-900">{kpi.value}</h3>
                 </div>
              </div>
           )
@@ -79,11 +88,14 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         
         {/* Trip Status Pie Chart */}
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm col-span-1">
-          <h3 className="text-lg font-bold text-slate-800 mb-4">Trip Status</h3>
+        <div className="col-span-1 rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-[0_12px_30px_-20px_rgba(15,23,42,0.45)] backdrop-blur-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-black tracking-tight text-slate-900">Trip Status</h3>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">Today</span>
+          </div>
           <div className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -107,10 +119,13 @@ export default function Dashboard() {
         </div>
 
         {/* Cost Analysis Bar Chart */}
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm col-span-1 lg:col-span-2">
+        <div className="col-span-1 rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-[0_12px_30px_-20px_rgba(15,23,42,0.45)] backdrop-blur-sm lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-800">Monthly Operational Costs</h3>
-            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-2 py-1 rounded font-medium">
+            <div>
+              <h3 className="text-lg font-black tracking-tight text-slate-900">Monthly Operational Costs</h3>
+              <p className="text-sm text-slate-500">Fuel versus maintenance spend across recent months.</p>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">
               <ArrowDownRight size={16} /> 4.2% from last month
             </div>
           </div>
@@ -131,15 +146,18 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Activity Table */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-slate-800">Recent Activity</h3>
-          <button className="text-primary text-sm font-medium hover:underline">View All</button>
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-[0_12px_30px_-20px_rgba(15,23,42,0.45)] backdrop-blur-sm">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+          <div>
+            <h3 className="text-lg font-black tracking-tight text-slate-900">Recent Activity</h3>
+            <p className="text-sm text-slate-500">Latest operational updates from the fleet.</p>
+          </div>
+          <button className="text-sm font-semibold text-primary hover:underline">View All</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-100">
+              <tr className="border-b border-slate-200 bg-slate-50/80 text-sm text-slate-500">
                 <th className="px-6 py-3 font-semibold">Action</th>
                 <th className="px-6 py-3 font-semibold">Related Entity</th>
                 <th className="px-6 py-3 font-semibold text-right">Time</th>
@@ -147,11 +165,11 @@ export default function Dashboard() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {recentActivity.map((activity) => (
-                <tr key={activity.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={activity.id} className="transition-colors hover:bg-slate-50/70">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full bg-${activity.status}`}></div>
-                      <span className="font-semibold text-slate-700">{activity.action}</span>
+                      <div className={`w-2.5 h-2.5 rounded-full bg-${activity.status} shadow-sm`}></div>
+                      <span className="font-semibold text-slate-800">{activity.action}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-slate-600">{activity.entity}</td>
