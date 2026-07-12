@@ -1,43 +1,98 @@
-import { useState } from 'react';
-import { Search, Plus, Filter, X, ShieldCheck, ShieldAlert } from 'lucide-react';
-
-const initialDrivers = [
-  { id: 1, name: 'James Wilson', license: 'CDL-89302', expiry: '2027-05-14', phone: '(555) 123-4567', score: 95, status: 'Available' },
-  { id: 2, name: 'Sarah Connor', license: 'CDL-11293', expiry: '2023-10-01', phone: '(555) 987-6543', score: 88, status: 'Suspended' },
-  { id: 3, name: 'Michael Chang', license: 'CDL-44920', expiry: '2025-11-20', phone: '(555) 321-7890', score: 72, status: 'On Trip' },
-  { id: 4, name: 'David Smith', license: 'CDL-77482', expiry: '2026-02-28', phone: '(555) 654-3210', score: 98, status: 'Available' },
-  { id: 5, name: 'Emily Davis', license: 'CDL-99211', expiry: '2024-01-15', phone: '(555) 432-1098', score: 91, status: 'Off Duty' }
-];
+import { useEffect, useState } from 'react';
+import { Search, Plus, Filter, X, ShieldCheck, ShieldAlert, Loader2 } from 'lucide-react';
+import api from '../api/api';
 
 export default function Drivers() {
-  const [drivers, setDrivers] = useState(initialDrivers);
+  const [drivers, setDrivers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingDriverId, setEditingDriverId] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
-    name: '', license: '', expiry: '', phone: '', score: ''
+    name: '', license: '', expiry: '', phone: '', score: '', status: 'Available'
   });
 
+  const fetchDrivers = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('drivers/');
+      setDrivers(response.data || []);
+    } catch (err) {
+      console.error(err);
+      setDrivers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDrivers();
+  }, []);
+
   const filteredDrivers = drivers.filter(d => 
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    d.license.toLowerCase().includes(searchQuery.toLowerCase())
+    String(d.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    String(d.license_number || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddDriver = (e) => {
+  const openAddModal = () => {
+    setEditingDriverId(null);
+    setFormData({ name: '', license: '', expiry: '', phone: '', score: '', status: 'Available' });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (driver) => {
+    setEditingDriverId(driver.id);
+    setFormData({
+      name: driver.name || '',
+      license: driver.license_number || '',
+      expiry: driver.license_expiry || '',
+      phone: driver.phone || '',
+      score: driver.safety_score !== undefined && driver.safety_score !== null ? String(driver.safety_score) : '',
+      status: driver.status || 'Available',
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleAddDriver = async (e) => {
     e.preventDefault();
-    const newDriver = {
-      id: drivers.length + 1,
-      name: formData.name,
-      license: formData.license,
-      expiry: formData.expiry,
-      phone: formData.phone,
-      score: parseInt(formData.score) || 100,
-      status: 'Available'
-    };
-    setDrivers([newDriver, ...drivers]);
-    setIsModalOpen(false);
-    setFormData({ name: '', license: '', expiry: '', phone: '', score: '' });
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        name: formData.name,
+        phone: formData.phone,
+        license_number: formData.license,
+        license_expiry: formData.expiry,
+        safety_score: Number(formData.score || 100),
+        status: formData.status,
+      };
+
+      if (editingDriverId) {
+        await api.put(`drivers/${editingDriverId}/`, payload);
+      } else {
+        await api.post('drivers/', payload);
+      }
+
+      setIsModalOpen(false);
+      setEditingDriverId(null);
+      setFormData({ name: '', license: '', expiry: '', phone: '', score: '', status: 'Available' });
+      await fetchDrivers();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteDriver = async (id) => {
+    try {
+      await api.delete(`drivers/${id}/`);
+      await fetchDrivers();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const statusColors = {
@@ -81,7 +136,7 @@ export default function Drivers() {
           </button>
           
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={openAddModal}
             className="flex items-center gap-2 bg-primary hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all shadow-sm whitespace-nowrap"
           >
             <Plus className="w-4 h-4" /> Add Driver
@@ -104,7 +159,16 @@ export default function Drivers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredDrivers.map((driver) => {
+              {isLoading && (
+                <tr>
+                  <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading drivers...
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {!isLoading && filteredDrivers.map((driver) => {
                 const expired = isExpired(driver.expiry);
                 return (
                   <tr key={driver.id} className="hover:bg-slate-50/50 transition-colors">
@@ -112,7 +176,7 @@ export default function Drivers() {
                       <div className="font-semibold text-slate-800">{driver.name}</div>
                       <div className="text-xs text-slate-500">{driver.phone}</div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600 font-mono text-sm">{driver.license}</td>
+                    <td className="px-6 py-4 text-slate-600 font-mono text-sm">{driver.license_number}</td>
                     
                     {/* The Hackathon Extra Feature: License Status */}
                     <td className="px-6 py-4">
@@ -126,14 +190,14 @@ export default function Drivers() {
                             <ShieldCheck size={14} /> Valid
                           </div>
                         )}
-                        <span className="text-sm text-slate-500">{driver.expiry}</span>
+                        <span className="text-sm text-slate-500">{driver.license_expiry}</span>
                       </div>
                     </td>
 
                     {/* Safety Score Logic */}
                     <td className="px-6 py-4">
-                      <div className={`font-bold text-lg ${driver.score >= 90 ? 'text-success' : driver.score < 80 ? 'text-danger' : 'text-warning'}`}>
-                        {driver.score}
+                      <div className={`font-bold text-lg ${driver.safety_score >= 90 ? 'text-success' : driver.safety_score < 80 ? 'text-danger' : 'text-warning'}`}>
+                        {driver.safety_score}
                       </div>
                     </td>
                     
@@ -144,15 +208,16 @@ export default function Drivers() {
                     </td>
                     
                     <td className="px-6 py-4 text-right">
-                       <button className="text-primary hover:underline text-sm font-medium">Edit</button>
+                       <button onClick={() => openEditModal(driver)} className="text-primary hover:underline text-sm font-medium">Edit</button>
+                       <button onClick={() => handleDeleteDriver(driver.id)} className="ml-3 text-danger hover:underline text-sm font-medium">Delete</button>
                     </td>
                   </tr>
                 );
               })}
-              {filteredDrivers.length === 0 && (
+              {!isLoading && filteredDrivers.length === 0 && (
                 <tr>
                    <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
-                      No drivers found matching your search.
+                      No Data Available
                    </td>
                 </tr>
               )}
@@ -211,7 +276,7 @@ export default function Drivers() {
                 Cancel
               </button>
               <button type="submit" form="add-driver-form" className="px-4 py-2 font-medium text-white bg-primary rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
-                Save Driver
+                {isSubmitting ? 'Saving...' : 'Save Driver'}
               </button>
             </div>
 

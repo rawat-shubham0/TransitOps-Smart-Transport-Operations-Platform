@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Truck, CheckCircle, Wrench, Map, Users, Percent, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import api from '../api/api';
 
 // Dummy Data for the Charts
 const tripStatusData = [
@@ -26,6 +28,22 @@ const recentActivity = [
 ];
 
 export default function Dashboard() {
+  const [dashboardData, setDashboardData] = useState({});
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const response = await api.get('dashboard/');
+        setDashboardData(response.data || {});
+      } catch (err) {
+        console.error(err);
+        setDashboardData({});
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
   return (
     <div className="space-y-6">
       
@@ -38,12 +56,12 @@ export default function Dashboard() {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {[
-          { title: "Total Vehicles", value: "124", icon: Truck, color: "text-blue-600", bg: "bg-blue-50" },
-          { title: "Available Now", value: "48", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
-          { title: "In Maintenance", value: "12", icon: Wrench, color: "text-amber-600", bg: "bg-amber-50" },
-          { title: "Active Trips", value: "32", icon: Map, color: "text-blue-600", bg: "bg-blue-50" },
-          { title: "Drivers On Duty", value: "86", icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
-          { title: "Fleet Utilization", value: "72%", icon: Percent, color: "text-purple-600", bg: "bg-purple-50" },
+          { title: "Total Vehicles", value: dashboardData.total_vehicles ?? "0", icon: Truck, color: "text-blue-600", bg: "bg-blue-50" },
+          { title: "Available Vehicles", value: dashboardData.available_vehicles ?? "0", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
+          { title: "Maintenance", value: dashboardData.maintenance ?? "0", icon: Wrench, color: "text-amber-600", bg: "bg-amber-50" },
+          { title: "Active Trips", value: dashboardData.active_trips ?? "0", icon: Map, color: "text-blue-600", bg: "bg-blue-50" },
+          { title: "Drivers On Duty", value: dashboardData.drivers_on_duty ?? "0", icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
+          { title: "Fleet Utilization", value: `${dashboardData.fleet_utilization ?? 0}%`, icon: Percent, color: "text-purple-600", bg: "bg-purple-50" },
         ].map((kpi, idx) => {
           const Icon = kpi.icon;
           return (

@@ -1,25 +1,52 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Truck, Loader2 } from 'lucide-react';
+import api from '../api/api';
+
+const demoUsers = {
+  fleet_manager: { label: 'Fleet Manager', username: 'fleet.manager', password: 'Fleet@123' },
+  dispatcher: { label: 'Dispatcher', username: 'dispatcher', password: 'Dispatch@123' },
+  safety_officer: { label: 'Safety Officer', username: 'safety.officer', password: 'Safety@123' },
+  financial_analyst: { label: 'Financial Analyst', username: 'finance.analyst', password: 'Finance@123' },
+};
 
 export default function Login() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [formData, setFormData] = useState({
-    email: 'admin@transitops.com',
-    password: 'password123',
-    role: 'dispacher'
+    email: demoUsers.dispatcher.username,
+    password: demoUsers.dispatcher.password,
+    role: 'dispatcher'
   });
 
-  const handleLogin = (e) => {
+  const handleRoleChange = (role) => {
+    const presetUser = demoUsers[role];
+    setFormData({
+      role,
+      email: presetUser.username,
+      password: presetUser.password,
+    });
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Mock JWT Login process for the Hackathon Demo
-    setTimeout(() => {
-      // Upon success, redirect to dashboard
+    setErrorMessage('');
+    try {
+      const response = await api.post('token/', {
+        username: formData.email,
+        password: formData.password,
+      });
+      localStorage.setItem('access', response.data.access);
+      localStorage.setItem('refresh', response.data.refresh);
       navigate('/dashboard');
-    }, 1000);
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Invalid Username or Password');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,6 +67,11 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
+          {errorMessage && (
+            <div className="rounded-lg bg-red-50 text-danger border border-red-100 px-4 py-3 text-sm font-medium">
+              {errorMessage}
+            </div>
+          )}
           {/* Email */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-slate-700">Email Address</label>
@@ -48,7 +80,7 @@ export default function Login() {
                 <Mail className="h-5 w-5 text-slate-400" />
               </div>
               <input
-                type="email"
+                type="text"
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -81,13 +113,13 @@ export default function Login() {
              <label className="block text-sm font-semibold text-slate-700">Login Role (Demo)</label>
              <select 
                 value={formData.role}
-                onChange={(e) => setFormData({...formData, role: e.target.value})}
+               onChange={(e) => handleRoleChange(e.target.value)}
                 className="block w-full py-2.5 px-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-700 bg-slate-50/50"
              >
-                <option value="fleet_manager">Fleet Manager</option>
-                <option value="dispacher">Dispatcher</option>
-                <option value="safety_officer">Safety Officer</option>
-                <option value="financial_analyst">Financial Analyst</option>
+               <option value="fleet_manager">Fleet Manager</option>
+               <option value="dispatcher">Dispatcher</option>
+               <option value="safety_officer">Safety Officer</option>
+               <option value="financial_analyst">Financial Analyst</option>
              </select>
           </div>
 

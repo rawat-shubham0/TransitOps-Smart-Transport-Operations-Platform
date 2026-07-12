@@ -1,48 +1,107 @@
-import { useState } from 'react';
-import { Search, Plus, Filter, X } from 'lucide-react';
-
-const initialVehicles = [
-  { id: 1, regNo: 'NY-402-TRK', model: 'Volvo VNL 860', type: 'Heavy Truck', capacity: '36,000 kg', status: 'Available' },
-  { id: 2, regNo: 'TX-112-VAN', model: 'Ford Transit', type: 'Cargo Van', capacity: '2,000 kg', status: 'On Trip' },
-  { id: 3, regNo: 'LV-009-FLT', model: 'Freightliner M2', type: 'Box Truck', capacity: '12,000 kg', status: 'In Shop' },
-  { id: 4, regNo: 'CA-992-TRK', model: 'Peterbilt 579', type: 'Heavy Truck', capacity: '36,000 kg', status: 'Available' },
-  { id: 5, regNo: 'WA-771-VAN', model: 'Mercedes Sprinter', type: 'Cargo Van', capacity: '2,500 kg', status: 'On Trip' }
-];
+import { useEffect, useState } from 'react';
+import { Search, Plus, Filter, X, Loader2 } from 'lucide-react';
+import api from '../api/api';
 
 export default function Vehicles() {
-  const [vehicles, setVehicles] = useState(initialVehicles);
+  const [vehicles, setVehicles] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingVehicleId, setEditingVehicleId] = useState(null);
 
   // Modal Form State
   const [formData, setFormData] = useState({
-    regNo: '', model: '', type: 'Heavy Truck', capacity: '', odometer: '', cost: ''
+    regNo: '', model: '', type: 'Heavy Truck', capacity: '', odometer: '', cost: '', status: 'Available'
   });
 
+  const fetchVehicles = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('vehicles/');
+      setVehicles(response.data || []);
+    } catch (err) {
+      console.error(err);
+      setVehicles([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
   const filteredVehicles = vehicles.filter(v => 
-    v.regNo.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    v.model.toLowerCase().includes(searchQuery.toLowerCase())
+    String(v.registration_number || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    String(v.model || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddVehicle = (e) => {
+  const openAddModal = () => {
+    setEditingVehicleId(null);
+    setFormData({ regNo: '', model: '', type: 'Heavy Truck', capacity: '', odometer: '', cost: '', status: 'Available' });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (vehicle) => {
+    setEditingVehicleId(vehicle.id);
+    setFormData({
+      regNo: vehicle.registration_number || '',
+      model: vehicle.model || '',
+      type: vehicle.vehicle_type || 'Heavy Truck',
+      capacity: vehicle.capacity !== undefined && vehicle.capacity !== null ? String(vehicle.capacity) : '',
+      odometer: vehicle.odometer !== undefined && vehicle.odometer !== null ? String(vehicle.odometer) : '',
+      cost: vehicle.acquisition_cost !== undefined && vehicle.acquisition_cost !== null ? String(vehicle.acquisition_cost) : '',
+      status: vehicle.status || 'Available',
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleAddVehicle = async (e) => {
     e.preventDefault();
-    const newVehicle = {
-      id: vehicles.length + 1,
-      regNo: formData.regNo,
-      model: formData.model,
-      type: formData.type,
-      capacity: `${formData.capacity} kg`,
-      status: 'Available' // Default status for a new vehicle
-    };
-    setVehicles([newVehicle, ...vehicles]);
-    setIsModalOpen(false);
-    setFormData({ regNo: '', model: '', type: 'Heavy Truck', capacity: '', odometer: '', cost: '' });
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        registration_number: formData.regNo,
+        model: formData.model,
+        vehicle_type: formData.type,
+        capacity: Number(formData.capacity),
+        odometer: Number(formData.odometer || 0),
+        acquisition_cost: formData.cost === '' ? 0 : Number(formData.cost),
+        status: formData.status,
+      };
+
+      if (editingVehicleId) {
+        await api.put(`vehicles/${editingVehicleId}/`, payload);
+      } else {
+        await api.post('vehicles/', payload);
+      }
+
+      setIsModalOpen(false);
+      setEditingVehicleId(null);
+      setFormData({ regNo: '', model: '', type: 'Heavy Truck', capacity: '', odometer: '', cost: '', status: 'Available' });
+      await fetchVehicles();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteVehicle = async (id) => {
+    try {
+      await api.delete(`vehicles/${id}/`);
+      await fetchVehicles();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const statusColors = {
     'Available': 'bg-success/10 text-success border-success/20',
     'On Trip': 'bg-primary/10 text-primary border-primary/20',
     'In Shop': 'bg-warning/10 text-warning border-warning/20',
+    'Retired': 'bg-slate-100 text-slate-600 border-slate-200',
   };
 
   return (
@@ -74,7 +133,7 @@ export default function Vehicles() {
           </button>
           
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={openAddModal}
             className="flex items-center gap-2 bg-primary hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all shadow-sm whitespace-nowrap"
           >
             <Plus className="w-4 h-4" /> Add Vehicle
@@ -97,11 +156,20 @@ export default function Vehicles() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredVehicles.map((vehicle) => (
+              {isLoading && (
+                <tr>
+                  <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading vehicles...
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {!isLoading && filteredVehicles.map((vehicle) => (
                 <tr key={vehicle.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4 font-semibold text-slate-700">{vehicle.regNo}</td>
+                  <td className="px-6 py-4 font-semibold text-slate-700">{vehicle.registration_number}</td>
                   <td className="px-6 py-4 text-slate-600">{vehicle.model}</td>
-                  <td className="px-6 py-4 text-slate-600">{vehicle.type}</td>
+                  <td className="px-6 py-4 text-slate-600">{vehicle.vehicle_type}</td>
                   <td className="px-6 py-4 text-slate-600">{vehicle.capacity}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${statusColors[vehicle.status] || 'bg-slate-100 text-slate-600'}`}>
@@ -109,14 +177,15 @@ export default function Vehicles() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                     <button className="text-primary hover:underline text-sm font-medium">Edit</button>
+                     <button onClick={() => openEditModal(vehicle)} className="text-primary hover:underline text-sm font-medium">Edit</button>
+                     <button onClick={() => handleDeleteVehicle(vehicle.id)} className="ml-3 text-danger hover:underline text-sm font-medium">Delete</button>
                   </td>
                 </tr>
               ))}
-              {filteredVehicles.length === 0 && (
+              {!isLoading && filteredVehicles.length === 0 && (
                 <tr>
                    <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
-                      No vehicles found matching your search.
+                      No Data Available
                    </td>
                 </tr>
               )}
@@ -189,7 +258,7 @@ export default function Vehicles() {
                 Cancel
               </button>
               <button type="submit" form="add-vehicle-form" className="px-4 py-2 font-medium text-white bg-primary rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
-                Save Vehicle
+                {isSubmitting ? 'Saving...' : 'Save Vehicle'}
               </button>
             </div>
 
