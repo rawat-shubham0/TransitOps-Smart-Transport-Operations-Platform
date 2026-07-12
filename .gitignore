@@ -1,0 +1,9 @@
+# Ignore Python virtual environment
+venv/
+__pycache__/
+
+# Ignore Node modules
+node_modules/
+build/
+dist/
+
